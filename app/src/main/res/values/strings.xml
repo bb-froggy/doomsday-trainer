@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Doomsday Trainer</string>
+    <string name="app_title">Doomsday Trainer</string>
+    <string name="guess_day">What day of the week is this date?</string>
+    <string name="day_monday">Monday</string>
+    <string name="day_tuesday">Tuesday</string>
+    <string name="day_wednesday">Wednesday</string>
+    <string name="day_thursday">Thursday</string>
+    <string name="day_friday">Friday</string>
+    <string name="day_saturday">Saturday</string>
+    <string name="day_sunday">Sunday</string>
+    <string name="correct_guess">Correct! It\'s %s!</string>
+    <string name="incorrect_guess">Sorry, that\'s not right. It\'s actually %s.</string>
+    <string name="new_date">New Date</string>
+</resources>
