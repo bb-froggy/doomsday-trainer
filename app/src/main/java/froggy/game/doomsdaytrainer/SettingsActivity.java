@@ -1,4 +1,4 @@
-package com.example.doomsdaytrainer;
+package froggy.game.doomsdaytrainer;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;

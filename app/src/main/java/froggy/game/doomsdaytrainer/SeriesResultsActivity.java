@@ -1,4 +1,4 @@
-package com.example.doomsdaytrainer;
+package froggy.game.doomsdaytrainer;
 
 import android.os.Bundle;
 import android.view.View;

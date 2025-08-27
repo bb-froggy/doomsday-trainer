@@ -1,14 +1,13 @@
-package com.example.doomsdaytrainer;
+package froggy.game.doomsdaytrainer;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -23,15 +22,25 @@ public class MainActivity extends AppCompatActivity {
     private TextView textViewDate;
     private TextView textViewResult;
     private Calendar currentDate;
-    private Random random = new Random();
+    private final Random random = new Random();
     private SharedPreferences preferences;
+    
+    // Series mode SharedPreferences keys
+    private static final String KEY_IN_SERIES_MODE = "in_series_mode";
+    private static final String KEY_SERIES_COUNT = "series_count_current";
+    private static final String KEY_CURRENT_INDEX = "current_series_index";
+    private static final String KEY_CORRECT_COUNT = "correct_guess_count";
+    private static final String KEY_ELAPSED_TIME = "elapsed_time";
+    private static final String KEY_TIMER_RUNNING = "timer_running";
     
     // Series mode variables
     private boolean inSeriesMode = false;
     private int seriesCount = 0;
     private int currentSeriesIndex = 0;
     private int correctGuessCount = 0;
-    private long seriesStartTime = 0;
+    private long elapsedTimeMillis = 0; // Total elapsed time so far
+    private long timeWhenPaused = 0;    // Time checkpoint for pausing
+    private boolean timerRunning = false;
     private Button buttonStartSeries;
     
     // Define day of week constants to match Calendar class
@@ -65,25 +74,22 @@ public class MainActivity extends AppCompatActivity {
 
         // Set up new date button
         Button buttonNewDate = findViewById(R.id.buttonNewDate);
-        buttonNewDate.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                generateRandomDate();
-                textViewResult.setText("");
-            }
+        buttonNewDate.setOnClickListener(v -> {
+            generateRandomDate();
+            textViewResult.setText("");
         });
         
         // Set up series mode button
         buttonStartSeries = findViewById(R.id.buttonStartSeries);
-        buttonStartSeries.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startSeriesMode();
-            }
-        });
+        buttonStartSeries.setOnClickListener(v -> startSeriesMode());
+        
+        // Check if we were in series mode when app was closed
+        restoreSeriesState();
 
-        // Generate a random date on start
-        generateRandomDate();
+        // If not resuming a series, generate a new date
+        if (!inSeriesMode) {
+            generateRandomDate();
+        }
     }
     
     @Override
@@ -93,6 +99,32 @@ public class MainActivity extends AppCompatActivity {
         // (in case date format or range has changed)
         if (currentDate != null) {
             displayFormattedDate();
+        }
+        
+        // Resume timer if we're in series mode
+        if (inSeriesMode && !timerRunning) {
+            timeWhenPaused = SystemClock.elapsedRealtime();
+            timerRunning = true;
+            saveSeriesState();
+        }
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Pause the timer when app goes to background
+        if (inSeriesMode && timerRunning) {
+            pauseTimer();
+            saveSeriesState();
+        }
+    }
+    
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // Save series state when app is about to be closed
+        if (inSeriesMode) {
+            saveSeriesState();
         }
     }
     
@@ -121,12 +153,7 @@ public class MainActivity extends AppCompatActivity {
      */
     private void setupDayButton(int buttonId, final int dayOfWeek) {
         Button button = findViewById(buttonId);
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                checkGuess(dayOfWeek);
-            }
-        });
+        button.setOnClickListener(v -> checkGuess(dayOfWeek));
     }
 
     /**
@@ -201,6 +228,11 @@ public class MainActivity extends AppCompatActivity {
         String actualDayName = dayNames[actualDay];
         boolean isCorrect = (guessedDay == actualDay);
         
+        // Pause the timer while showing result
+        if (inSeriesMode && timerRunning) {
+            pauseTimer();
+        }
+        
         if (isCorrect) {
             // Correct guess
             textViewResult.setText(getString(R.string.correct_guess, actualDayName));
@@ -215,21 +247,22 @@ public class MainActivity extends AppCompatActivity {
         // Handle series mode progression
         if (inSeriesMode) {
             currentSeriesIndex++;
+            saveSeriesState();
             
             if (currentSeriesIndex >= seriesCount) {
                 // Series complete - show results
                 finishSeriesMode();
             } else {
                 // Continue with next date after a brief delay
-                textViewResult.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        generateRandomDate();
-                        textViewResult.setText("");
-                        // Update progress
-                        textViewDate.setText(textViewDate.getText() + 
-                                "\n" + getString(R.string.series_progress, currentSeriesIndex + 1, seriesCount));
-                    }
+                textViewResult.postDelayed(() -> {
+                    generateRandomDate();
+                    textViewResult.setText("");
+                    // Update progress
+                    textViewDate.setText(textViewDate.getText() +
+                            "\n" + getString(R.string.series_progress, currentSeriesIndex + 1, seriesCount));
+                    
+                    // Resume timer for the new date
+                    resumeTimer();
                 }, 1500); // 1.5 second delay
             }
         }
@@ -246,7 +279,9 @@ public class MainActivity extends AppCompatActivity {
         currentSeriesIndex = 0;
         correctGuessCount = 0;
         inSeriesMode = true;
-        seriesStartTime = System.currentTimeMillis();
+        elapsedTimeMillis = 0;
+        timerRunning = true;
+        timeWhenPaused = SystemClock.elapsedRealtime();
         
         // Generate first date
         generateRandomDate();
@@ -256,19 +291,121 @@ public class MainActivity extends AppCompatActivity {
         textViewDate.setText(textViewDate.getText() + 
                 "\n" + getString(R.string.series_progress, currentSeriesIndex + 1, seriesCount));
         buttonStartSeries.setEnabled(false);
+        
+        // Save the state to SharedPreferences
+        saveSeriesState();
+    }
+    
+    /**
+     * Save the current series mode state to SharedPreferences
+     */
+    private void saveSeriesState() {
+        if (!inSeriesMode) {
+            // If not in series mode, just clear any existing state
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.remove(KEY_IN_SERIES_MODE);
+            editor.remove(KEY_SERIES_COUNT);
+            editor.remove(KEY_CURRENT_INDEX);
+            editor.remove(KEY_CORRECT_COUNT);
+            editor.remove(KEY_ELAPSED_TIME);
+            editor.remove(KEY_TIMER_RUNNING);
+            editor.apply();
+            return;
+        }
+        
+        // Update elapsed time if timer is running
+        if (timerRunning) {
+            updateElapsedTime();
+        }
+        
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putBoolean(KEY_IN_SERIES_MODE, inSeriesMode);
+        editor.putInt(KEY_SERIES_COUNT, seriesCount);
+        editor.putInt(KEY_CURRENT_INDEX, currentSeriesIndex);
+        editor.putInt(KEY_CORRECT_COUNT, correctGuessCount);
+        editor.putLong(KEY_ELAPSED_TIME, elapsedTimeMillis);
+        editor.putBoolean(KEY_TIMER_RUNNING, timerRunning);
+        editor.apply();
+    }
+    
+    /**
+     * Restore the series mode state from SharedPreferences
+     */
+    private void restoreSeriesState() {
+        inSeriesMode = preferences.getBoolean(KEY_IN_SERIES_MODE, false);
+        
+        if (inSeriesMode) {
+            // Restore all series state
+            seriesCount = preferences.getInt(KEY_SERIES_COUNT, 10);
+            currentSeriesIndex = preferences.getInt(KEY_CURRENT_INDEX, 0);
+            correctGuessCount = preferences.getInt(KEY_CORRECT_COUNT, 0);
+            elapsedTimeMillis = preferences.getLong(KEY_ELAPSED_TIME, 0);
+            timerRunning = preferences.getBoolean(KEY_TIMER_RUNNING, false);
+            
+            // Initialize timer
+            timeWhenPaused = SystemClock.elapsedRealtime();
+            
+            // Generate the current date with progress indicator
+            generateRandomDate();
+            textViewDate.setText(textViewDate.getText() + 
+                    "\n" + getString(R.string.series_progress, currentSeriesIndex + 1, seriesCount));
+            textViewResult.setText("");
+            
+            // Disable series start button
+            buttonStartSeries.setEnabled(false);
+        }
+    }
+    
+    /**
+     * Pause the series timer
+     */
+    private void pauseTimer() {
+        if (timerRunning) {
+            updateElapsedTime();
+            timerRunning = false;
+        }
+    }
+    
+    /**
+     * Resume the series timer
+     */
+    private void resumeTimer() {
+        if (!timerRunning) {
+            timeWhenPaused = SystemClock.elapsedRealtime();
+            timerRunning = true;
+        }
+    }
+    
+    /**
+     * Update the elapsed time based on the current timer state
+     */
+    private void updateElapsedTime() {
+        if (timerRunning) {
+            long currentTime = SystemClock.elapsedRealtime();
+            elapsedTimeMillis += (currentTime - timeWhenPaused);
+            timeWhenPaused = currentTime;
+        }
     }
     
     /**
      * Finish series mode and show results
      */
     private void finishSeriesMode() {
-        long endTime = System.currentTimeMillis();
-        long totalTime = endTime - seriesStartTime;
+        // Make sure we have the final elapsed time
+        if (timerRunning) {
+            updateElapsedTime();
+        }
+        
+        long totalTime = elapsedTimeMillis;
         long averageTime = totalTime / seriesCount;
         
         // Reset mode
         inSeriesMode = false;
+        timerRunning = false;
         buttonStartSeries.setEnabled(true);
+        
+        // Clear saved state
+        saveSeriesState();
         
         // Start results activity
         Intent intent = new Intent(this, SeriesResultsActivity.class);
