@@ -71,6 +71,9 @@ public class MainActivity extends AppCompatActivity {
         setupDayButton(R.id.buttonFriday, FRIDAY);
         setupDayButton(R.id.buttonSaturday, SATURDAY);
         setupDayButton(R.id.buttonSunday, SUNDAY);
+        
+        // Initialize button appearances
+        resetDayButtonAppearances();
 
         // Set up new date button
         Button buttonNewDate = findViewById(R.id.buttonNewDate);
@@ -155,6 +158,71 @@ public class MainActivity extends AppCompatActivity {
         Button button = findViewById(buttonId);
         button.setOnClickListener(v -> checkGuess(dayOfWeek));
     }
+    
+    /**
+     * Set the enabled state of all day of week buttons
+     * 
+     * @param enabled true to enable buttons, false to disable
+     */
+    private void setDayButtonsEnabled(boolean enabled) {
+        findViewById(R.id.buttonMonday).setEnabled(enabled);
+        findViewById(R.id.buttonTuesday).setEnabled(enabled);
+        findViewById(R.id.buttonWednesday).setEnabled(enabled);
+        findViewById(R.id.buttonThursday).setEnabled(enabled);
+        findViewById(R.id.buttonFriday).setEnabled(enabled);
+        findViewById(R.id.buttonSaturday).setEnabled(enabled);
+        findViewById(R.id.buttonSunday).setEnabled(enabled);
+    }
+    
+    /**
+     * Reset all day button appearances to their default state
+     */
+    private void resetDayButtonAppearances() {
+        Button[] buttons = {
+            findViewById(R.id.buttonMonday),
+            findViewById(R.id.buttonTuesday),
+            findViewById(R.id.buttonWednesday),
+            findViewById(R.id.buttonThursday),
+            findViewById(R.id.buttonFriday),
+            findViewById(R.id.buttonSaturday),
+            findViewById(R.id.buttonSunday)
+        };
+        
+        for (Button button : buttons) {
+            // Reset to default material button style (purple)
+            button.setBackgroundTintList(getResources().getColorStateList(R.color.colorPrimary, null));
+        }
+    }
+    
+    /**
+     * Get the button ID for a given day of week constant
+     * 
+     * @param dayOfWeek The Calendar constant for the day
+     * @return The resource ID of the corresponding button
+     */
+    private int getButtonIdForDay(int dayOfWeek) {
+        switch (dayOfWeek) {
+            case SUNDAY: return R.id.buttonSunday;
+            case MONDAY: return R.id.buttonMonday;
+            case TUESDAY: return R.id.buttonTuesday;
+            case WEDNESDAY: return R.id.buttonWednesday;
+            case THURSDAY: return R.id.buttonThursday;
+            case FRIDAY: return R.id.buttonFriday;
+            case SATURDAY: return R.id.buttonSaturday;
+            default: return R.id.buttonMonday; // fallback
+        }
+    }
+    
+    /**
+     * Highlight a button with the specified color
+     * 
+     * @param buttonId The resource ID of the button to highlight
+     * @param colorRes The color resource ID to use for highlighting
+     */
+    private void highlightButton(int buttonId, int colorRes) {
+        Button button = findViewById(buttonId);
+        button.setBackgroundTintList(getResources().getColorStateList(colorRes, null));
+    }
 
     /**
      * Generate a random date using the date range from settings
@@ -228,7 +296,20 @@ public class MainActivity extends AppCompatActivity {
         String actualDayName = dayNames[actualDay];
         boolean isCorrect = (guessedDay == actualDay);
         
-        // Pause the timer while showing result
+        // Disable day buttons during the result display (both modes)
+        setDayButtonsEnabled(false);
+        
+        // Always highlight the correct answer in green
+        int correctButtonId = getButtonIdForDay(actualDay);
+        highlightButton(correctButtonId, R.color.colorCorrect);
+        
+        // If the guess was wrong, also highlight the selected button in red
+        if (!isCorrect) {
+            int selectedButtonId = getButtonIdForDay(guessedDay);
+            highlightButton(selectedButtonId, R.color.colorIncorrect);
+        }
+        
+        // Pause the timer while showing result (only in series mode)
         if (inSeriesMode && timerRunning) {
             pauseTimer();
         }
@@ -250,8 +331,10 @@ public class MainActivity extends AppCompatActivity {
             saveSeriesState();
             
             if (currentSeriesIndex >= seriesCount) {
-                // Series complete - show results
-                finishSeriesMode();
+                // Series complete - show results after delay
+                textViewResult.postDelayed(() -> {
+                    finishSeriesMode();
+                }, 1500); // 1.5 second delay
             } else {
                 // Continue with next date after a brief delay
                 textViewResult.postDelayed(() -> {
@@ -261,10 +344,20 @@ public class MainActivity extends AppCompatActivity {
                     textViewDate.setText(textViewDate.getText() +
                             "\n" + getString(R.string.series_progress, currentSeriesIndex + 1, seriesCount));
                     
+                    // Reset button appearances and re-enable day buttons for the next date
+                    resetDayButtonAppearances();
+                    setDayButtonsEnabled(true);
+                    
                     // Resume timer for the new date
                     resumeTimer();
                 }, 1500); // 1.5 second delay
             }
+        } else {
+            // Normal mode - just reset buttons after delay
+            textViewResult.postDelayed(() -> {
+                resetDayButtonAppearances();
+                setDayButtonsEnabled(true);
+            }, 1500); // 1.5 second delay
         }
     }
     
@@ -291,6 +384,10 @@ public class MainActivity extends AppCompatActivity {
         textViewDate.setText(textViewDate.getText() + 
                 "\n" + getString(R.string.series_progress, currentSeriesIndex + 1, seriesCount));
         buttonStartSeries.setEnabled(false);
+        
+        // Ensure day buttons are enabled and reset appearances
+        resetDayButtonAppearances();
+        setDayButtonsEnabled(true);
         
         // Save the state to SharedPreferences
         saveSeriesState();
@@ -353,6 +450,10 @@ public class MainActivity extends AppCompatActivity {
             
             // Disable series start button
             buttonStartSeries.setEnabled(false);
+            
+            // Enable day buttons and reset appearances
+            resetDayButtonAppearances();
+            setDayButtonsEnabled(true);
         }
     }
     
@@ -403,6 +504,10 @@ public class MainActivity extends AppCompatActivity {
         inSeriesMode = false;
         timerRunning = false;
         buttonStartSeries.setEnabled(true);
+        
+        // Make sure day buttons are enabled and reset appearances
+        resetDayButtonAppearances();
+        setDayButtonsEnabled(true);
         
         // Clear saved state
         saveSeriesState();
