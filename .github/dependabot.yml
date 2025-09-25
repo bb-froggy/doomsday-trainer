@@ -1,0 +1,47 @@
+# Dependabot configuration file
+# Documentation: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: "ci"
+      prefix-development: "ci"
+      include: "scope"
+
+  # Enable version updates for Gradle dependencies
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps"
+      include: "scope"
+    # Group Android dependencies together
+    groups:
+      android:
+        patterns:
+          - "androidx.*"
+          - "com.android.*"
+          - "com.google.android.*"
+      testing:
+        patterns:
+          - "*junit*"
+          - "*espresso*"
+          - "*test*"
+    # Ignore specific updates if needed
+    ignore:
+      # Ignore major version updates for Android Gradle Plugin to avoid breaking changes
+      - dependency-name: "com.android.tools.build:gradle"
+        update-types: ["version-update:semver-major"]
