@@ -40,7 +40,9 @@
         android:layout_height="wrap_content"
         android:inputType="number"
         android:maxLength="4"
-        android:hint="1900" />
+        android:hint="@string/start_year_hint"
+        android:autofillHints="none"
+        android:importantForAutofill="no" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -54,7 +56,9 @@
         android:layout_height="wrap_content"
         android:inputType="number"
         android:maxLength="4"
-        android:hint="2099" />
+        android:hint="@string/end_year_hint"
+        android:autofillHints="none"
+        android:importantForAutofill="no" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -115,7 +119,9 @@
         android:layout_height="wrap_content"
         android:inputType="number"
         android:maxLength="3"
-        android:hint="10" />
+        android:hint="@string/series_count_hint"
+        android:autofillHints="none"
+        android:importantForAutofill="no" />
 
     <View
         android:layout_width="match_parent"

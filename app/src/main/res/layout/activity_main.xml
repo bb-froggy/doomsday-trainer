@@ -24,7 +24,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:text="January 1, 2023"
+        android:text="@string/default_date_display"
         android:textAppearance="@style/TextAppearance.AppCompat.Large"
         android:textSize="30sp"
         android:textStyle="bold"

@@ -190,7 +190,7 @@ public class MainActivity extends AppCompatActivity {
         
         for (Button button : buttons) {
             // Reset to default material button style (purple)
-            button.setBackgroundTintList(getResources().getColorStateList(R.color.colorPrimary, null));
+            button.setBackgroundTintList(androidx.appcompat.content.res.AppCompatResources.getColorStateList(this, R.color.colorPrimary));
         }
     }
     
@@ -221,7 +221,7 @@ public class MainActivity extends AppCompatActivity {
      */
     private void highlightButton(int buttonId, int colorRes) {
         Button button = findViewById(buttonId);
-        button.setBackgroundTintList(getResources().getColorStateList(colorRes, null));
+        button.setBackgroundTintList(androidx.appcompat.content.res.AppCompatResources.getColorStateList(this, colorRes));
     }
 
     /**
@@ -341,8 +341,9 @@ public class MainActivity extends AppCompatActivity {
                     generateRandomDate();
                     textViewResult.setText("");
                     // Update progress
-                    textViewDate.setText(textViewDate.getText() +
-                            "\n" + getString(R.string.series_progress, currentSeriesIndex + 1, seriesCount));
+                    String dateText = textViewDate.getText().toString().split("\n")[0]; // Get just the date part
+                    String progressText = getString(R.string.series_progress, currentSeriesIndex + 1, seriesCount);
+                    textViewDate.setText(getString(R.string.date_with_progress, dateText, progressText));
                     
                     // Reset button appearances and re-enable day buttons for the next date
                     resetDayButtonAppearances();
@@ -381,8 +382,9 @@ public class MainActivity extends AppCompatActivity {
         textViewResult.setText("");
         
         // Update UI for series mode
-        textViewDate.setText(textViewDate.getText() + 
-                "\n" + getString(R.string.series_progress, currentSeriesIndex + 1, seriesCount));
+        String dateText = textViewDate.getText().toString();
+        String progressText = getString(R.string.series_progress, currentSeriesIndex + 1, seriesCount);
+        textViewDate.setText(getString(R.string.date_with_progress, dateText, progressText));
         buttonStartSeries.setEnabled(false);
         
         // Ensure day buttons are enabled and reset appearances
@@ -444,8 +446,9 @@ public class MainActivity extends AppCompatActivity {
             
             // Generate the current date with progress indicator
             generateRandomDate();
-            textViewDate.setText(textViewDate.getText() + 
-                    "\n" + getString(R.string.series_progress, currentSeriesIndex + 1, seriesCount));
+            String dateText = textViewDate.getText().toString();
+            String progressText = getString(R.string.series_progress, currentSeriesIndex + 1, seriesCount);
+            textViewDate.setText(getString(R.string.date_with_progress, dateText, progressText));
             textViewResult.setText("");
             
             // Disable series start button
