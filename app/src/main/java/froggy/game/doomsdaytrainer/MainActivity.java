@@ -11,6 +11,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -317,12 +318,12 @@ public class MainActivity extends AppCompatActivity {
         if (isCorrect) {
             // Correct guess
             textViewResult.setText(getString(R.string.correct_guess, actualDayName));
-            textViewResult.setTextColor(getResources().getColor(R.color.colorCorrect));
+            textViewResult.setTextColor(ContextCompat.getColor(this, R.color.colorCorrect));
             if (inSeriesMode) correctGuessCount++;
         } else {
             // Incorrect guess
             textViewResult.setText(getString(R.string.incorrect_guess, actualDayName));
-            textViewResult.setTextColor(getResources().getColor(R.color.colorIncorrect));
+            textViewResult.setTextColor(ContextCompat.getColor(this, R.color.colorIncorrect));
         }
         
         // Handle series mode progression
